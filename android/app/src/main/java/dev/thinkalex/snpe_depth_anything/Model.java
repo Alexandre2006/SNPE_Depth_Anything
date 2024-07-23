@@ -29,7 +29,7 @@ public class Model {
     public static NeuralNetwork.Runtime MODEL_RUNTIME;
     public static NeuralNetwork.PerformanceProfile MODEL_PERFORMANCE_PROFILE;
 
-    // Private
+        // Private
     private static NeuralNetwork network;
 
     // Constructor

@@ -35,9 +35,9 @@ public class MainActivity extends FlutterActivity {
                 (call, result) -> {
                     if (call.method.equals("getAvailableModels")) {
                         try {
-                            Model.getAvailableModels(this.getApplication());
+                            result.success(Model.getAvailableModels(this.getApplication()));
                         } catch (IOException e) {
-                            throw new RuntimeException(e);
+                            result.error("IOException", e.getMessage(), e.getStackTrace());
                         }
                     }
                 }
