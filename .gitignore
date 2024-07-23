@@ -43,5 +43,5 @@ app.*.map.json
 /android/app/release
 
 # Non-Redistributable Libraries
-/android/app/libs/
+/android/app/libs/*
 !/android/app/libs/README.md
