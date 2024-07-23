@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,6 +56,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const platform =
+      MethodChannel('dev.thinkalex.snpe_depth_anything/model');
+
   int _counter = 0;
 
   void _incrementCounter() {
@@ -65,6 +69,10 @@ class _MyHomePageState extends State<MyHomePage> {
       // _counter without calling setState(), then the build method would not be
       // called again, and so nothing would appear to happen.
       _counter++;
+
+      platform.invokeMethod("getAvailableModels").then((value) {
+        print(value);
+      });
     });
   }
 
