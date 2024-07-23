@@ -19,10 +19,8 @@ To make it easier to load and organize models, a special naming convention is us
 # model_version = depth_anything_v1 or depth_anything_v2
 # encoder = vits (small) / vitb (base) / vitl (large) / vitg (giant)
 # input_size = image input size (i.e. 252x252, must less than 518 and divisible by 14)
-# format = data format (i.e. fp16/fp32/int8)
-# TODO: Check what formats are supported
-{model_version}_{encoder}_{input_size}_{format}.dlc
+{model_version}_{encoder}_{input_size}.dlc
 
-# Example: Depth Anything V2 - Small - 252x252 - FP16
-depth_anything_v2_vits_252_fp16.dlc
+# Example: Depth Anything V2 - Small - 252x252
+depth_anything_v2_vits_252.dlc
 ```
