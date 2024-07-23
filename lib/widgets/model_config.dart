@@ -6,10 +6,10 @@ class ModelConfigurationWidget extends StatefulWidget {
 
   @override
   State<ModelConfigurationWidget> createState() =>
-      _ModelConfigurationWidgetState();
+      _modelConfigurationWidgetState();
 }
 
-class _ModelConfigurationWidgetState extends State<ModelConfigurationWidget> {
+class _modelConfigurationWidgetState extends State<ModelConfigurationWidget> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
@@ -21,69 +21,164 @@ class ModelConfigurationController {
   static const platform =
       MethodChannel('dev.thinkalex.snpe_depth_anything/model');
 
-  // Configuration
-  final ValueNotifier<String> _modelPath = ValueNotifier<String>('');
-  final ValueNotifier<Runtime> _runtime = ValueNotifier<Runtime>(Runtime.cpu);
-  final ValueNotifier<PerformanceProfile> _performanceProfile =
-      ValueNotifier<PerformanceProfile>(PerformanceProfile.snpeDefault);
+  List<String> models = [];
 
-  // Configuration - Getters
-  String get modelPath => _modelPath.value;
-  String get modelName =>
-      modelPath.contains("v2") ? "Depth Anything v2" : "Depth Anything v1";
-  int get modelInputSize => int.parse(modelPath.split(".")[0].split("_").last);
-  // second to last element of the model path
-  String get modelEncoder =>
-      modelPath.split(".")[0].split("_").reversed.toList()[1];
-  Runtime get runtime => _runtime.value;
-  PerformanceProfile get performanceProfile => _performanceProfile.value;
+  // Configuration (final)
+  String? modelPath;
+  Runtime runtime = Runtime.cpu;
+  PerformanceProfile performanceProfile = PerformanceProfile.snpeDefault;
 
-  // Configuration - Setters
-  set modelPath(String value) {
-    _modelPath.value = value;
-    _notifyListeners();
-  }
+  // Configuration (selected options)
+  ModelVersion? _modelVersion;
+  Encoder? _encoder;
+  int? size;
 
-  set modelName(String value) {
-    if (value == "Depth Anything v2") {
-      modelPath = "depth_anything_v2_${modelEncoder}_256.dlc";
-    } else {
-      modelPath = "depth_anything_v1_${modelEncoder}_256.dlc";
+  set encoder(Encoder? value) {
+    if (value == null) {
+      _encoder == null;
+      size = null;
+      return;
+    }
+
+    // Check if size is still available
+    if (size != null && !isSizeAvailable(_modelVersion!, value)) {
+      size = null;
     }
   }
 
-  set modelInputSize(int value) {
-    // Replace input size in current model path
-    final modelPathParts = modelPath.split(".")[0].split("_");
-    modelPathParts[modelPathParts.length - 1] = value.toString();
-    _modelPath.value = "${modelPathParts.join("_")}.dlc";
-  }
-
-  set modelEncoder(String value) {
-    // Replace encoder in current model path
-    final modelPathParts = modelPath.split("_");
-    modelPathParts[modelPathParts.length - 2] = value;
-    _modelPath.value = modelPathParts.join("_");
-  }
-
-  // Listeners
-  final List<VoidCallback> _listeners = [];
-
-  void addListener(VoidCallback listener) {
-    _listeners.add(listener);
-  }
-
-  void removeListener(VoidCallback listener) {
-    _listeners.remove(listener);
-  }
-
-  // Notify Listeners
-  void _notifyListeners() {
-    for (final listener in _listeners) {
-      listener();
+  set modelVersion(ModelVersion? value) {
+    if (value == null) {
+      _modelVersion = null;
+      _encoder = null;
+      size = null;
+      return;
     }
+    _modelVersion = value;
+
+    // Check if encoder is still available
+    if (_encoder != null && !isEncoderAvailable(value)) {
+      _encoder = null;
+      size = null;
+      return;
+    }
+
+    // Check if size is still available
+    if (size != null && !isSizeAvailable(value, _encoder!)) {
+      size = null;
+    }
+  }
+
+  // Getters
+  ModelVersion? get modelVersion => _modelVersion;
+  Encoder? get encoder => _encoder;
+
+  // Available Options
+  List<ModelVersion> getAvailableModelVersions() {
+    List<ModelVersion> availableModels = [];
+    if (models.any((element) => element.contains(ModelVersion.v1.toString()))) {
+      availableModels.add(ModelVersion.v1);
+    }
+    if (models.any((element) => element.contains(ModelVersion.v2.toString()))) {
+      availableModels.add(ModelVersion.v2);
+    }
+
+    return availableModels;
+  }
+
+  List<Encoder> getAvailableEncoders() {
+    // Filter by model
+    List<String> modelFilter = models
+        .where((element) => element.contains(_modelVersion.toString()))
+        .toList();
+
+    List<Encoder> availableEncoders = [];
+    if (modelFilter
+        .any((element) => element.contains(Encoder.vits.toString()))) {
+      availableEncoders.add(Encoder.vits);
+    }
+    if (modelFilter
+        .any((element) => element.contains(Encoder.vitb.toString()))) {
+      availableEncoders.add(Encoder.vitb);
+    }
+    if (modelFilter
+        .any((element) => element.contains(Encoder.vitl.toString()))) {
+      availableEncoders.add(Encoder.vitl);
+    }
+    if (modelFilter
+        .any((element) => element.contains(Encoder.vitg.toString()))) {
+      availableEncoders.add(Encoder.vitg);
+    }
+
+    return availableEncoders;
+  }
+
+  List<int> getAvailableSizes() {
+    // Filter by model
+    List<String> modelFilter = models
+        .where((element) => element.contains(_modelVersion.toString()))
+        .toList();
+
+    // Filter by encoder
+    List<String> encoderFilter = modelFilter
+        .where((element) => element.contains(_encoder.toString()))
+        .toList();
+
+    List<int> availableSizes = [];
+    for (String element in encoderFilter) {
+      String withoutExtension = element.split('.').first;
+      int? size = int.tryParse(withoutExtension.split('_').last);
+      if (size != null) {
+        availableSizes.add(size);
+      }
+    }
+
+    return availableSizes;
+  }
+
+  // Validators
+  bool isEncoderAvailable(ModelVersion newModel) {
+    // Filter all models with the current model
+    List<String> modelFilter = models
+        .where((element) => element.contains(newModel.toString()))
+        .toList();
+
+    // Filter models with the current encoder
+    List<String> encoderFilter = modelFilter
+        .where((element) => element.contains(_encoder.toString()))
+        .toList();
+
+    return encoderFilter.isNotEmpty;
+  }
+
+  bool isSizeAvailable(ModelVersion newModel, Encoder newEncoder) {
+    // Filter all models with the current encoder
+    List<String> encoderFilter = models
+        .where((element) => element.contains(newEncoder.toString()))
+        .toList();
+
+    // Filter models with the current model
+    List<String> modelFilter = encoderFilter
+        .where((element) => element.contains(newModel.toString()))
+        .toList();
+
+    // Filter models with the current size
+    List<String> sizeFilter = modelFilter
+        .where((element) => element.contains(size.toString()))
+        .toList();
+
+    return sizeFilter.isNotEmpty;
+  }
+
+  // Channel Methods
+  Future<void> getAvailableModels() async {
+    models = (await platform.invokeListMethod<String>("getAvailableModels"))!;
   }
 }
+
+// Enums
+enum ModelVersion { v1, v2 }
+
+enum Encoder { vits, vitb, vitl, vitg }
 
 enum Runtime { cpu, gpu, gpuFloat16, dsp }
 
