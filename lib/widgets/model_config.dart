@@ -33,6 +33,9 @@ class ModelConfigurationController {
   Encoder? _encoder;
   int? size;
 
+  // TODO: Call listeners
+  // TODO: Update Path
+
   set encoder(Encoder? value) {
     if (value == null) {
       _encoder == null;
@@ -172,6 +175,38 @@ class ModelConfigurationController {
   // Channel Methods
   Future<void> getAvailableModels() async {
     models = (await platform.invokeListMethod<String>("getAvailableModels"))!;
+  }
+
+  // Listeners
+  List<VoidCallback> _propertiesListeners = [];
+  List<VoidCallback> _pathListeners = [];
+
+  void addPropertiesListener(VoidCallback listener) {
+    _propertiesListeners.add(listener);
+  }
+
+  void removePropertiesListener(VoidCallback listener) {
+    _propertiesListeners.remove(listener);
+  }
+
+  void addPathListener(VoidCallback listener) {
+    _pathListeners.add(listener);
+  }
+
+  void removePathListener(VoidCallback listener) {
+    _pathListeners.remove(listener);
+  }
+
+  void _notifyPropertiesListeners() {
+    for (VoidCallback listener in _propertiesListeners) {
+      listener();
+    }
+  }
+
+  void _notifyPathListeners() {
+    for (VoidCallback listener in _pathListeners) {
+      listener();
+    }
   }
 }
 
