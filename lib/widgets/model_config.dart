@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class ModelConfigurationWidget extends StatefulWidget {
-  const ModelConfigurationWidget({super.key});
+  const ModelConfigurationWidget({super.key, required this.controller});
+  final ModelConfigurationController controller;
 
   @override
   State<ModelConfigurationWidget> createState() =>
@@ -10,9 +11,161 @@ class ModelConfigurationWidget extends StatefulWidget {
 }
 
 class _ModelConfigurationWidgetState extends State<ModelConfigurationWidget> {
+  // 3 Rows
+  // Row 1: Model Version
+  // Row 2: Encoder + Size
+  // Row 3: Runtime + Performance Profile
+  // Optionally: Model Path at bottom as text
+
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Expanded(
+                child: DropdownButtonFormField(
+                  decoration: const InputDecoration(labelText: "Model Version"),
+                  isExpanded: true,
+                  icon: const Icon(Icons.view_in_ar),
+                  value: widget.controller.modelVersion,
+                  hint: const Text("Select Model Version"),
+                  disabledHint: const Text("No Models Available"),
+                  items: widget.controller
+                      .getAvailableModelVersions()
+                      .map((ModelVersion modelVersion) {
+                    return DropdownMenuItem(
+                      value: modelVersion,
+                      child: Text(
+                          "Depth Anything ${modelVersion.toString().split(".").last}"),
+                    );
+                  }).toList(),
+                  onChanged: (ModelVersion? value) {
+                    setState(() {
+                      widget.controller.modelVersion = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Padding(padding: EdgeInsets.only(top: 8.0)),
+          Row(
+            children: [
+              // Encoder
+              Expanded(
+                child: DropdownButtonFormField(
+                  decoration: const InputDecoration(labelText: "Encoder"),
+                  isExpanded: true,
+                  icon: const Icon(Icons.qr_code_2),
+                  value: widget.controller.encoder,
+                  hint: const Text("Select Encoder"),
+                  disabledHint: const Text("Unavailable"),
+                  items: widget.controller
+                      .getAvailableEncoders()
+                      .map((Encoder encoder) {
+                    return DropdownMenuItem(
+                      value: encoder,
+                      child: Text(encoder.toString().split(".").last),
+                    );
+                  }).toList(),
+                  onChanged: (Encoder? value) {
+                    setState(() {
+                      widget.controller.encoder = value;
+                    });
+                  },
+                ),
+              ),
+              const Padding(padding: EdgeInsets.only(left: 8.0)),
+              // Size
+              Expanded(
+                child: DropdownButtonFormField(
+                  decoration: const InputDecoration(labelText: "Input Size"),
+                  isExpanded: true,
+                  icon: const Icon(Icons.photo_size_select_large),
+                  value: widget.controller.size,
+                  hint: const Text("Select Size"),
+                  disabledHint: const Text("Unavailable"),
+                  items: widget.controller.getAvailableSizes().map((int size) {
+                    return DropdownMenuItem(
+                      value: size,
+                      child: Text("$size x $size"),
+                    );
+                  }).toList(),
+                  onChanged: (int? value) {
+                    setState(() {
+                      widget.controller.size = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const Padding(padding: EdgeInsets.only(top: 8.0)),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField(
+                  decoration: const InputDecoration(labelText: "Runtime"),
+                  isExpanded: true,
+                  value: widget.controller.runtime,
+                  icon: const Icon(Icons.settings),
+                  hint: const Text("Select Runtime"),
+                  items: const [
+                    DropdownMenuItem(
+                      value: Runtime.cpu,
+                      child: Text("CPU"),
+                    ),
+                    DropdownMenuItem(
+                      value: Runtime.gpu,
+                      child: Text("GPU"),
+                    ),
+                    DropdownMenuItem(
+                      value: Runtime.gpuFloat16,
+                      child: Text("GPU FP16"),
+                    ),
+                    DropdownMenuItem(
+                      value: Runtime.dsp,
+                      child: Text("DSP"),
+                    ),
+                  ],
+                  onChanged: (Runtime? value) {
+                    setState(() {
+                      widget.controller.runtime = value!;
+                    });
+                  },
+                ),
+              ),
+              const Padding(padding: EdgeInsets.only(left: 8.0)),
+              Expanded(
+                child: DropdownButtonFormField(
+                  decoration:
+                      const InputDecoration(labelText: "Performance Profile"),
+                  isExpanded: true,
+                  value: widget.controller.performanceProfile,
+                  icon: const Icon(Icons.tune),
+                  items: PerformanceProfile.values
+                      .map((PerformanceProfile profile) {
+                    return DropdownMenuItem(
+                      value: profile,
+                      child: Text(performanceProfileNames[profile]!),
+                    );
+                  }).toList(),
+                  onChanged: (PerformanceProfile? value) {
+                    setState(() {
+                      widget.controller.performanceProfile = value!;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -21,7 +174,11 @@ class ModelConfigurationController {
   static const platform =
       MethodChannel('dev.thinkalex.snpe_depth_anything/model');
 
-  List<String> models = [];
+  List<String> models = [
+    "depth_anything_v2_vits_224.dlc",
+    "depth_anything_v2_vitb_384.dlc",
+    "depth_anything_v1_vits_224.dlc",
+  ];
 
   // Configuration (final)
   String? _modelPath;
@@ -44,6 +201,8 @@ class ModelConfigurationController {
     if (_size != null && !isSizeAvailable(_modelVersion!, value)) {
       _size = null;
     }
+
+    _encoder = value;
 
     // Notify Listeners
     _notifyPropertiesListeners();
@@ -96,12 +255,14 @@ class ModelConfigurationController {
     } else {
       // Filter by model
       List<String> modelFilter = models
-          .where((element) => element.contains(_modelVersion.toString()))
+          .where((element) =>
+              element.contains(_modelVersion.toString().split(".").last))
           .toList();
 
       // Filter by encoder
       List<String> encoderFilter = modelFilter
-          .where((element) => element.contains(_encoder.toString()))
+          .where((element) =>
+              element.contains(_encoder.toString().split(".").last))
           .toList();
 
       // Filter by size
@@ -134,10 +295,10 @@ class ModelConfigurationController {
   // Available Options
   List<ModelVersion> getAvailableModelVersions() {
     List<ModelVersion> availableModels = [];
-    if (models.any((element) => element.contains(ModelVersion.v1.toString()))) {
+    if (models.any((element) => element.contains("v1"))) {
       availableModels.add(ModelVersion.v1);
     }
-    if (models.any((element) => element.contains(ModelVersion.v2.toString()))) {
+    if (models.any((element) => element.contains("v2"))) {
       availableModels.add(ModelVersion.v2);
     }
 
@@ -147,24 +308,21 @@ class ModelConfigurationController {
   List<Encoder> getAvailableEncoders() {
     // Filter by model
     List<String> modelFilter = models
-        .where((element) => element.contains(_modelVersion.toString()))
+        .where((element) =>
+            element.contains(_modelVersion.toString().split(".").last))
         .toList();
 
     List<Encoder> availableEncoders = [];
-    if (modelFilter
-        .any((element) => element.contains(Encoder.vits.toString()))) {
+    if (modelFilter.any((element) => element.contains("vits"))) {
       availableEncoders.add(Encoder.vits);
     }
-    if (modelFilter
-        .any((element) => element.contains(Encoder.vitb.toString()))) {
+    if (modelFilter.any((element) => element.contains("vitb"))) {
       availableEncoders.add(Encoder.vitb);
     }
-    if (modelFilter
-        .any((element) => element.contains(Encoder.vitl.toString()))) {
+    if (modelFilter.any((element) => element.contains("vitl"))) {
       availableEncoders.add(Encoder.vitl);
     }
-    if (modelFilter
-        .any((element) => element.contains(Encoder.vitg.toString()))) {
+    if (modelFilter.any((element) => element.contains("vitg"))) {
       availableEncoders.add(Encoder.vitg);
     }
 
@@ -174,12 +332,14 @@ class ModelConfigurationController {
   List<int> getAvailableSizes() {
     // Filter by model
     List<String> modelFilter = models
-        .where((element) => element.contains(_modelVersion.toString()))
+        .where((element) =>
+            element.contains(_modelVersion.toString().split(".").last))
         .toList();
 
     // Filter by encoder
     List<String> encoderFilter = modelFilter
-        .where((element) => element.contains(_encoder.toString()))
+        .where(
+            (element) => element.contains(_encoder.toString().split(".").last))
         .toList();
 
     List<int> availableSizes = [];
@@ -198,12 +358,14 @@ class ModelConfigurationController {
   bool isEncoderAvailable(ModelVersion newModel) {
     // Filter all models with the current model
     List<String> modelFilter = models
-        .where((element) => element.contains(newModel.toString()))
+        .where(
+            (element) => element.contains(newModel.toString().split(".").last))
         .toList();
 
     // Filter models with the current encoder
     List<String> encoderFilter = modelFilter
-        .where((element) => element.contains(_encoder.toString()))
+        .where(
+            (element) => element.contains(_encoder.toString().split(".").last))
         .toList();
 
     return encoderFilter.isNotEmpty;
@@ -212,12 +374,14 @@ class ModelConfigurationController {
   bool isSizeAvailable(ModelVersion newModel, Encoder newEncoder) {
     // Filter all models with the current encoder
     List<String> encoderFilter = models
-        .where((element) => element.contains(newEncoder.toString()))
+        .where((element) =>
+            element.contains(newEncoder.toString().split(".").last))
         .toList();
 
     // Filter models with the current model
     List<String> modelFilter = encoderFilter
-        .where((element) => element.contains(newModel.toString()))
+        .where(
+            (element) => element.contains(newModel.toString().split(".").last))
         .toList();
 
     // Filter models with the current size
@@ -293,3 +457,17 @@ enum PerformanceProfile {
   snpeDefault, // Default (from SNPE library)
   systemDefault, // Default (based on system settings)
 }
+
+Map<PerformanceProfile, String> performanceProfileNames = {
+  PerformanceProfile.burst: "Burst",
+  PerformanceProfile.highPerformance: "High Performance",
+  PerformanceProfile.sustainedHighPerformance: "Sustained High Performance",
+  PerformanceProfile.balanced: "Balanced",
+  PerformanceProfile.lowBalanced: "Low Balanced",
+  PerformanceProfile.lowPowerSaver: "Low Power Saver",
+  PerformanceProfile.powerSaver: "Power Saver",
+  PerformanceProfile.highPowerSaver: "High Power Saver",
+  PerformanceProfile.extremePowerSaver: "Extreme Power Saver",
+  PerformanceProfile.snpeDefault: "SNPE Default",
+  PerformanceProfile.systemDefault: "System Default",
+};
