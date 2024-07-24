@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:snpe_depth_anything/widgets/model_button.dart';
 import 'package:snpe_depth_anything/widgets/model_config.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -9,6 +10,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  ModelConfigurationController controller = ModelConfigurationController();
+
+  @override
+  void initState() {
+    // Scan for models
+    controller.getAvailableModels().whenComplete(() => setState(() {}));
+
+    // TODO: implement initState
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,8 +33,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Card(
             child: Column(
               children: [
-                ModelConfigurationWidget(
-                    controller: ModelConfigurationController())
+                ModelConfigurationWidget(controller: controller),
+                ModelLoadButton(isEnabled: controller.modelPath != null)
               ],
             ),
           ),
