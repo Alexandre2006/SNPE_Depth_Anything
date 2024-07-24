@@ -112,7 +112,7 @@ class _ModelConfigurationWidgetState extends State<ModelConfigurationWidget> {
                   decoration: const InputDecoration(labelText: "Runtime"),
                   isExpanded: true,
                   value: widget.controller.runtime,
-                  icon: const Icon(Icons.settings),
+                  icon: const Icon(Icons.memory),
                   hint: const Text("Select Runtime"),
                   items: const [
                     DropdownMenuItem(
@@ -146,7 +146,7 @@ class _ModelConfigurationWidgetState extends State<ModelConfigurationWidget> {
                       const InputDecoration(labelText: "Performance Profile"),
                   isExpanded: true,
                   value: widget.controller.performanceProfile,
-                  icon: const Icon(Icons.tune),
+                  icon: const Icon(Icons.speed),
                   items: PerformanceProfile.values
                       .map((PerformanceProfile profile) {
                     return DropdownMenuItem(

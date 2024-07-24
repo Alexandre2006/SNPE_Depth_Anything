@@ -11,7 +11,10 @@ import com.qualcomm.qti.snpe.NeuralNetwork;
 import com.qualcomm.qti.snpe.SNPE;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,7 +32,7 @@ public class Model {
     public static NeuralNetwork.Runtime MODEL_RUNTIME;
     public static NeuralNetwork.PerformanceProfile MODEL_PERFORMANCE_PROFILE;
 
-        // Private
+    // Private
     private static NeuralNetwork network;
 
     // Constructor
@@ -55,9 +58,21 @@ public class Model {
 
         // Load the model
         try {
-            // Load file
-            final Uri modelUri = Uri.parse(MODEL_PATH);
-            final File modelFile = new File(modelUri.getPath());
+            // Load file from assets
+            final InputStream modelStream = application.getResources().getAssets().open("flutter_assets/models/" + MODEL_PATH);
+
+            // Create temp file
+            File modelFile = File.createTempFile("model", ".dlc", application.getCacheDir());
+            modelFile.deleteOnExit();
+
+            // Copy model into temp file
+            try (OutputStream out = new FileOutputStream(modelFile)) {
+                byte[] buffer = new byte[1024];
+                int read;
+                while ((read = modelStream.read(buffer)) != -1) {
+                    out.write(buffer, 0, read);
+                }
+            }
 
             // Create the model builder (holds model info, used to load model)
             final SNPE.NeuralNetworkBuilder builder = new SNPE.NeuralNetworkBuilder(application)
@@ -157,9 +172,5 @@ public class Model {
         String noExt = modelName.substring(0, modelName.length() - 4);
         String[] parts = noExt.split("_");
         return parts[parts.length - 2];
-    }
-
-    public static boolean isCurrentlyLoadedModel(String path, NeuralNetwork.Runtime runtime, NeuralNetwork.PerformanceProfile performanceProfile) {
-        return MODEL_PATH.equals(path) && MODEL_RUNTIME == runtime && MODEL_PERFORMANCE_PROFILE == performanceProfile;
     }
 }

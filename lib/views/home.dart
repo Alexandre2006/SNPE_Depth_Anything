@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:snpe_depth_anything/views/model_loader.dart';
 import 'package:snpe_depth_anything/widgets/model_button.dart';
 import 'package:snpe_depth_anything/widgets/model_config.dart';
 
@@ -11,13 +13,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   ModelConfigurationController controller = ModelConfigurationController();
-
   @override
   void initState() {
     // Scan for models
     controller.getAvailableModels().whenComplete(() => setState(() {}));
 
-    // TODO: implement initState
+    // Add callback for path changes
+    controller.addPathListener(() {
+      setState(() {});
+    });
+
     super.initState();
   }
 
@@ -32,9 +37,24 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(8.0),
           child: Card(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 ModelConfigurationWidget(controller: controller),
-                ModelLoadButton(isEnabled: controller.modelPath != null)
+                ModelLoadButton(
+                  isEnabled: controller.modelPath != null,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ModelLoadingScreen(
+                          modelPath: controller.modelPath!,
+                          runtime: controller.runtime,
+                          performanceProfile: controller.performanceProfile,
+                        ),
+                      ),
+                    );
+                  },
+                )
               ],
             ),
           ),
