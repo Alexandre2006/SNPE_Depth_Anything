@@ -6,10 +6,10 @@ class ModelConfigurationWidget extends StatefulWidget {
 
   @override
   State<ModelConfigurationWidget> createState() =>
-      _modelConfigurationWidgetState();
+      _ModelConfigurationWidgetState();
 }
 
-class _modelConfigurationWidgetState extends State<ModelConfigurationWidget> {
+class _ModelConfigurationWidgetState extends State<ModelConfigurationWidget> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
@@ -24,36 +24,39 @@ class ModelConfigurationController {
   List<String> models = [];
 
   // Configuration (final)
-  String? modelPath;
-  Runtime runtime = Runtime.cpu;
-  PerformanceProfile performanceProfile = PerformanceProfile.snpeDefault;
+  String? _modelPath;
+  Runtime _runtime = Runtime.cpu;
+  PerformanceProfile _performanceProfile = PerformanceProfile.snpeDefault;
 
   // Configuration (selected options)
   ModelVersion? _modelVersion;
   Encoder? _encoder;
-  int? size;
-
-  // TODO: Call listeners
-  // TODO: Update Path
+  int? _size;
 
   set encoder(Encoder? value) {
     if (value == null) {
       _encoder == null;
-      size = null;
+      _size = null;
       return;
     }
 
     // Check if size is still available
-    if (size != null && !isSizeAvailable(_modelVersion!, value)) {
-      size = null;
+    if (_size != null && !isSizeAvailable(_modelVersion!, value)) {
+      _size = null;
     }
+
+    // Notify Listeners
+    _notifyPropertiesListeners();
+
+    // Update Model Path
+    updateModelPath();
   }
 
   set modelVersion(ModelVersion? value) {
     if (value == null) {
       _modelVersion = null;
       _encoder = null;
-      size = null;
+      _size = null;
       return;
     }
     _modelVersion = value;
@@ -61,19 +64,72 @@ class ModelConfigurationController {
     // Check if encoder is still available
     if (_encoder != null && !isEncoderAvailable(value)) {
       _encoder = null;
-      size = null;
+      _size = null;
       return;
     }
 
     // Check if size is still available
-    if (size != null && !isSizeAvailable(value, _encoder!)) {
-      size = null;
+    if (_size != null && !isSizeAvailable(value, _encoder!)) {
+      _size = null;
     }
+
+    // Notify Listeners
+    _notifyPropertiesListeners();
+
+    // Update Model Path
+    updateModelPath();
+  }
+
+  set size(int? value) {
+    _size = value;
+
+    // Notify Listeners
+    _notifyPropertiesListeners();
+
+    // Update Model Path
+    updateModelPath();
+  }
+
+  void updateModelPath() {
+    if (_modelVersion == null || _encoder == null || _size == null) {
+      _modelPath = null;
+    } else {
+      // Filter by model
+      List<String> modelFilter = models
+          .where((element) => element.contains(_modelVersion.toString()))
+          .toList();
+
+      // Filter by encoder
+      List<String> encoderFilter = modelFilter
+          .where((element) => element.contains(_encoder.toString()))
+          .toList();
+
+      // Filter by size
+      List<String> sizeFilter = encoderFilter
+          .where((element) => element.contains(_size.toString()))
+          .toList();
+
+      _modelPath = sizeFilter.first;
+    }
+
+    _notifyPathListeners();
+  }
+
+  set runtime(Runtime value) {
+    _runtime = value;
+  }
+
+  set performanceProfile(PerformanceProfile value) {
+    _performanceProfile = value;
   }
 
   // Getters
   ModelVersion? get modelVersion => _modelVersion;
   Encoder? get encoder => _encoder;
+  int? get size => _size;
+  Runtime get runtime => _runtime;
+  PerformanceProfile get performanceProfile => _performanceProfile;
+  String? get modelPath => _modelPath;
 
   // Available Options
   List<ModelVersion> getAvailableModelVersions() {
@@ -166,7 +222,7 @@ class ModelConfigurationController {
 
     // Filter models with the current size
     List<String> sizeFilter = modelFilter
-        .where((element) => element.contains(size.toString()))
+        .where((element) => element.contains(_size.toString()))
         .toList();
 
     return sizeFilter.isNotEmpty;
