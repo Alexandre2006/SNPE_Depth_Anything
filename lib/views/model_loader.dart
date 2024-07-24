@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:snpe_depth_anything/views/preview.dart';
 import 'package:snpe_depth_anything/widgets/model_config.dart';
 
 class ModelLoadingScreen extends StatefulWidget {
@@ -34,6 +35,11 @@ class _ModelLoadingScreenState extends State<ModelLoadingScreen> {
         print(error);
         hasError = true;
       });
+    }).then((value) {
+      print("SUCCEEDED");
+      // Ignore Value & Push to next screen
+      Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (context) => const CameraPreview()));
     });
 
     // TODO: implement initState

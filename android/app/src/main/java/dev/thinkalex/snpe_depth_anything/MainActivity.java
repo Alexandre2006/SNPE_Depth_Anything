@@ -76,6 +76,7 @@ public class MainActivity extends FlutterActivity {
                         // Load Model
                         try {
                             currentModel = new Model(this.getApplication(), modelPath, runtimeEnum, performanceProfileEnum);
+                            result.success("Model Loaded");
                         } catch (IOException e) {
                             result.error("IOException", e.getMessage(), e.getStackTrace());
                         }
